@@ -72,9 +72,11 @@
 ## 💻 Download & Installation
 
 ### Option 1: Native Windows Executable (`.exe`)
-You can install and run TuitionPad Studio directly on Windows:
-1. **Windows Installer**: Double-click [`TuitionPad Studio Setup 1.0.0.exe`](release/TuitionPad%20Studio%20Setup%201.0.0.exe) to install with desktop and start menu shortcuts.
-2. **Standalone Portable**: Double-click [`TuitionPad Studio 1.0.0.exe`](release/TuitionPad%20Studio%201.0.0.exe) to run instantly without installation.
+Download the latest pre-compiled build directly from [**GitHub Releases v1.0.0**](https://github.com/M000nwalker/lets-solve-pdf-forever/releases/tag/v1.0.0):
+1. **[TuitionPad Studio Setup 1.0.0.exe](https://github.com/M000nwalker/lets-solve-pdf-forever/releases/download/v1.0.0/TuitionPad.Studio.Setup.1.0.0.exe)**  
+   *Standard Windows NSIS Installer (adds Desktop & Start Menu shortcuts)*
+2. **[TuitionPad Studio 1.0.0.exe](https://github.com/M000nwalker/lets-solve-pdf-forever/releases/download/v1.0.0/TuitionPad.Studio.1.0.0.exe)**  
+   *Portable Standalone Executable (Zero installation required, click & run directly from USB or drive)*
 
 ---
 
