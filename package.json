@@ -1,8 +1,8 @@
 {
-  "name": "tuitionpad-studio",
+  "name": "rough-khata",
   "private": true,
-  "version": "1.0.0",
-  "description": "Professional STEM PDF Note-Taking & Online Tuition App",
+  "version": "1.1.0",
+  "description": "Rough Khata - Professional STEM PDF Note-Taking, Infinite Canvas & Tuition App",
   "main": "electron/main.cjs",
   "type": "module",
   "scripts": {
@@ -39,9 +39,9 @@
     "wait-on": "^9.5.1"
   },
   "build": {
-    "appId": "com.tuitionpad.studio",
-    "productName": "TuitionPad Studio",
-    "copyright": "Copyright © 2026 TuitionPad",
+    "appId": "com.roughkhata.app",
+    "productName": "Rough Khata",
+    "copyright": "Copyright © 2026 Rough Khata",
     "directories": {
       "output": "release"
     },
@@ -71,7 +71,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "TuitionPad Studio"
+      "shortcutName": "Rough Khata"
     }
   }
 }

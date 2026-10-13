@@ -10,8 +10,8 @@ function createWindow() {
     height: 900,
     minWidth: 1024,
     minHeight: 700,
-    title: 'TuitionPad Studio - STEM PDF & Note Taking',
-    backgroundColor: '#121316',
+    title: 'Rough Khata - STEM PDF & Infinite Note Taking',
+    backgroundColor: '#0c0e12',
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
@@ -20,6 +20,8 @@ function createWindow() {
     },
     autoHideMenuBar: true
   });
+
+  mainWindow.maximize();
 
   const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 

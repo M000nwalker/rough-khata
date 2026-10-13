@@ -17,6 +17,7 @@ interface PageViewProps {
   onUpdateAnnotations: (pageId: string, annotations: Annotation[]) => void;
   onSnipToScratchpad?: (croppedImageDataUrl: string, sourcePageNumber: number) => void;
   onEditLatex?: (annotationId: string, currentContent: string, currentColor: string) => void;
+  onExtendPageHeight?: (pageId: string, additionalHeight: number) => void;
 }
 
 export const PageView: React.FC<PageViewProps> = ({
@@ -28,7 +29,8 @@ export const PageView: React.FC<PageViewProps> = ({
   strokeWidth,
   onUpdateAnnotations,
   onSnipToScratchpad,
-  onEditLatex
+  onEditLatex,
+  onExtendPageHeight
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const pdfCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -508,9 +510,20 @@ export const PageView: React.FC<PageViewProps> = ({
         />
       </div>
 
-      {/* Page Badge */}
-      <div className="page-number-badge">
-        Page {page.pageNumber} {page.isCustomPage ? '(Blank Scratchpad)' : ''}
+      {/* Page Badge & Extend Button */}
+      <div className="page-bottom-actions">
+        <div className="page-number-badge">
+          Page {page.pageNumber} {page.isCustomPage ? '(Blank Scratchpad)' : ''}
+        </div>
+        {onExtendPageHeight && (
+          <button
+            className="extend-page-btn"
+            onClick={() => onExtendPageHeight(page.id, 500)}
+            title="Extend vertical writing area by 500px"
+          >
+            <span>+ Extend Page (+500px)</span>
+          </button>
+        )}
       </div>
     </div>
   );

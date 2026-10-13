@@ -14,7 +14,10 @@ export type ToolType =
   | 'latex'
   | 'text'
   | 'laser'
-  | 'snip';
+  | 'snip'
+  | 'pan';
+
+export type AppMode = 'slides' | 'infinite';
 
 export type PaperGrid = 'none' | 'grid' | 'dots' | 'lines' | 'isometric';
 

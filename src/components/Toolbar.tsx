@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { ToolType } from '../types';
+import type { AppMode, ToolType } from '../types';
 import {
   Pen,
   Highlighter,
@@ -23,10 +23,16 @@ import {
   FolderOpen,
   FilePlus,
   ChevronDown,
-  Trash2
+  Trash2,
+  FileText,
+  Infinity,
+  Maximize,
+  Scan
 } from 'lucide-react';
 
 interface ToolbarProps {
+  appMode: AppMode;
+  onToggleMode: (mode: AppMode) => void;
   activeTool: ToolType;
   onSelectTool: (tool: ToolType) => void;
   primaryColor: string;
@@ -41,6 +47,8 @@ interface ToolbarProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onResetZoom: () => void;
+  onFitWidth: () => void;
+  onFitScreen: () => void;
   onOpenPdf: () => void;
   onNewNotebook: () => void;
   onExportPdf: () => void;
@@ -61,6 +69,8 @@ const COLOR_PRESETS = [
 ];
 
 export const Toolbar: React.FC<ToolbarProps> = ({
+  appMode,
+  onToggleMode,
   activeTool,
   onSelectTool,
   primaryColor,
@@ -75,6 +85,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onZoomIn,
   onZoomOut,
   onResetZoom,
+  onFitWidth,
+  onFitScreen,
   onOpenPdf,
   onNewNotebook,
   onExportPdf,
@@ -99,27 +111,51 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
   return (
     <header className="tuition-top-toolbar">
-      {/* 1. Brand & File Operations */}
+      {/* 1. Brand & Mode Switcher */}
       <div className="toolbar-section doc-ops">
         <div className="brand-badge">
           <div className="brand-dot" />
-          <span className="brand-title">TuitionPad</span>
+          <span className="brand-title">Rough Khata</span>
           <span className="brand-sub">STUDIO</span>
         </div>
 
-        <button className="tool-btn icon-label" onClick={onOpenPdf} title="Open any PDF document">
-          <FolderOpen size={16} />
-          <span>Open PDF</span>
-        </button>
+        {/* Mode Switcher Pill */}
+        <div className="mode-switcher-pill">
+          <button
+            className={`mode-pill-btn ${appMode === 'slides' ? 'active' : ''}`}
+            onClick={() => onToggleMode('slides')}
+            title="PDF & Slide Workspace"
+          >
+            <FileText size={14} />
+            <span>Slides / PDF</span>
+          </button>
+          <button
+            className={`mode-pill-btn ${appMode === 'infinite' ? 'active' : ''}`}
+            onClick={() => onToggleMode('infinite')}
+            title="Endless Infinite Canvas Whiteboard"
+          >
+            <Infinity size={15} />
+            <span>Infinite Khata</span>
+          </button>
+        </div>
 
-        <button className="tool-btn icon-label" onClick={onNewNotebook} title="Generate blank colored notebook">
-          <FilePlus size={16} />
-          <span>New Notebook</span>
-        </button>
+        {appMode === 'slides' && (
+          <>
+            <button className="tool-btn icon-label" onClick={onOpenPdf} title="Open any PDF document">
+              <FolderOpen size={15} />
+              <span>Open PDF</span>
+            </button>
 
-        <button className="tool-btn icon-label highlight-export" onClick={onExportPdf} title="Bake and export to PDF">
-          <Download size={16} />
-          <span>Export PDF</span>
+            <button className="tool-btn icon-label" onClick={onNewNotebook} title="Generate blank colored notebook">
+              <FilePlus size={15} />
+              <span>New</span>
+            </button>
+          </>
+        )}
+
+        <button className="tool-btn icon-label highlight-export" onClick={onExportPdf} title="Bake and export to PDF / PNG">
+          <Download size={15} />
+          <span>Export</span>
         </button>
       </div>
 
@@ -132,7 +168,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           onClick={() => onSelectTool('pen')}
           title="Smooth Ink Pen"
         >
-          <Pen size={18} />
+          <Pen size={17} />
         </button>
 
         <button
@@ -140,7 +176,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           onClick={() => onSelectTool('highlighter')}
           title="Text Highlighter (Multiply Blend)"
         >
-          <Highlighter size={18} />
+          <Highlighter size={17} />
         </button>
 
         {/* Eraser Dropdown */}
@@ -153,8 +189,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             }}
             title="Eraser (Click to switch Stroke / Brush)"
           >
-            <Eraser size={18} />
-            <ChevronDown size={12} className="caret-icon" />
+            <Eraser size={17} />
+            <ChevronDown size={11} className="caret-icon" />
           </button>
 
           {eraserDropdownOpen && (
@@ -185,21 +221,21 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             title="Geometric STEM Shapes & Coordinate Axes"
           >
             {activeTool === 'axes' ? (
-              <Grid size={18} />
+              <Grid size={17} />
             ) : activeTool === 'circle' ? (
-              <Circle size={18} />
+              <Circle size={17} />
             ) : activeTool === 'rect' ? (
-              <Square size={18} />
+              <Square size={17} />
             ) : activeTool === 'triangle' ? (
-              <Triangle size={18} />
+              <Triangle size={17} />
             ) : activeTool === 'arrow' ? (
-              <ArrowRight size={18} />
+              <ArrowRight size={17} />
             ) : activeTool === 'double-arrow' ? (
-              <MoveHorizontal size={18} />
+              <MoveHorizontal size={17} />
             ) : (
-              <Minus size={18} />
+              <Minus size={17} />
             )}
-            <ChevronDown size={12} className="caret-icon" />
+            <ChevronDown size={11} className="caret-icon" />
           </button>
 
           {shapesDropdownOpen && (
@@ -290,7 +326,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           onClick={onOpenMathModal}
           title="Type Clean LaTeX Math & Science Formula"
         >
-          <Calculator size={18} />
+          <Calculator size={17} />
           <span className="math-label">LaTeX</span>
         </button>
 
@@ -300,19 +336,21 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           onClick={() => onSelectTool('laser')}
           title="Teacher Laser Pointer (Temporary Glow for Screen Sharing)"
         >
-          <Flame size={18} />
+          <Flame size={17} />
           <span className="laser-label">Laser</span>
         </button>
 
-        {/* Snip & Solve Tool */}
-        <button
-          className={`tool-icon-btn snip-btn ${activeTool === 'snip' ? 'active' : ''}`}
-          onClick={() => onSelectTool('snip')}
-          title="Snip & Solve: Crop question from PDF -> new scratchpad page"
-        >
-          <Crop size={18} />
-          <span className="snip-label">Snip</span>
-        </button>
+        {/* Snip & Solve Tool (only in slide mode) */}
+        {appMode === 'slides' && (
+          <button
+            className={`tool-icon-btn snip-btn ${activeTool === 'snip' ? 'active' : ''}`}
+            onClick={() => onSelectTool('snip')}
+            title="Snip & Solve: Crop question from PDF -> new scratchpad page"
+          >
+            <Crop size={17} />
+            <span className="snip-label">Snip</span>
+          </button>
+        )}
       </div>
 
       <div className="toolbar-divider" />
@@ -356,7 +394,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
       <div className="toolbar-divider" />
 
-      {/* 4. History, Zoom & Presentation Actions */}
+      {/* 4. History, Zoom & Screen Maximize Actions */}
       <div className="toolbar-section history-view-group">
         <button
           className="tool-icon-btn"
@@ -364,7 +402,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           onClick={onUndo}
           title="Undo (Ctrl+Z)"
         >
-          <Undo2 size={17} />
+          <Undo2 size={16} />
         </button>
 
         <button
@@ -373,33 +411,56 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           onClick={onRedo}
           title="Redo (Ctrl+Y)"
         >
-          <Redo2 size={17} />
+          <Redo2 size={16} />
         </button>
 
         <button
           className="tool-icon-btn"
           onClick={onClearSlide}
-          title="Clear all annotations on current slide"
+          title="Clear current view"
         >
-          <Trash2 size={16} />
+          <Trash2 size={15} />
         </button>
+
+        {appMode === 'slides' && (
+          <>
+            {/* Fit Width / Fit Screen Buttons */}
+            <button
+              className="fit-action-btn"
+              onClick={onFitWidth}
+              title="Fit to Full Window Width (Max Working Space)"
+            >
+              <Maximize size={13} />
+              <span>Fit Width</span>
+            </button>
+
+            <button
+              className="fit-action-btn"
+              onClick={onFitScreen}
+              title="Fit Full Page on Screen"
+            >
+              <Scan size={13} />
+              <span>Fit Screen</span>
+            </button>
+          </>
+        )}
 
         <div className="zoom-controls">
           <button className="zoom-btn" onClick={onZoomOut} title="Zoom Out">
-            <ZoomOut size={15} />
+            <ZoomOut size={14} />
           </button>
           <button className="zoom-label-btn" onClick={onResetZoom} title="Reset Zoom">
             {Math.round(zoom * 100)}%
           </button>
           <button className="zoom-btn" onClick={onZoomIn} title="Zoom In">
-            <ZoomIn size={15} />
+            <ZoomIn size={14} />
           </button>
         </div>
 
         <button
           className="tool-icon-btn"
           onClick={onToggleFullscreen}
-          title="Toggle Fullscreen Teaching Mode"
+          title="Toggle Fullscreen Teaching Mode (F11)"
         >
           <Maximize2 size={16} />
         </button>
