@@ -124,8 +124,22 @@ declare global {
         filters?: Array<{ name: string; extensions: string[] }>;
       }) => Promise<{ success: boolean; filePath: string } | false>;
       getEnvKeys?: () => Promise<{ geminiKey?: string; openaiKey?: string }>;
+      copyImageToClipboard?: (dataUrl: string) => Promise<boolean>;
+      copyTextToClipboard?: (text: string) => Promise<boolean>;
       isElectron?: boolean;
     };
+  }
+  namespace JSX {
+    interface IntrinsicElements {
+      webview: React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
+        src?: string;
+        partition?: string;
+        useragent?: string;
+        allowpopups?: string | boolean;
+        webpreferences?: string;
+        ref?: any;
+      };
+    }
   }
 }
 
@@ -161,10 +175,15 @@ export interface PeerSession {
   error?: string;
 }
 
+export type AiProvider = 'gemini' | 'openai' | 'deepseek' | 'anthropic' | 'openrouter' | 'ollama';
+
 export interface AiConfig {
-  provider: 'gemini' | 'openai-compatible';
+  provider: AiProvider;
   apiKey: string;
   model: string;
   customBaseUrl?: string;
 }
+
+export type WebLlmService = 'gemini' | 'chatgpt' | 'claude' | 'deepseek' | 'custom';
+
 

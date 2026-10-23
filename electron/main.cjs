@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, clipboard, nativeImage } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -16,6 +16,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
+      webviewTag: true,
       webSecurity: false // Enables local file loading if needed
     },
     autoHideMenuBar: true
@@ -85,6 +86,23 @@ ipcMain.handle('ai:get-env-keys', async () => {
     openaiKey: process.env.OPENAI_API_KEY || ''
   };
 });
+
+ipcMain.handle('clipboard:copy-image', async (_event, dataUrl) => {
+  try {
+    const image = nativeImage.createFromDataURL(dataUrl);
+    clipboard.writeImage(image);
+    return true;
+  } catch (err) {
+    console.error('Failed to copy image to clipboard:', err);
+    return false;
+  }
+});
+
+ipcMain.handle('clipboard:copy-text', async (_event, text) => {
+  clipboard.writeText(text);
+  return true;
+});
+
 
 app.whenReady().then(() => {
   createWindow();
