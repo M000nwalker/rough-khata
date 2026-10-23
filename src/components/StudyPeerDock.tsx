@@ -27,8 +27,8 @@ import {
   RotateCw,
   ArrowLeft,
   ArrowRight,
-  ClipboardCopy,
-  Columns
+  Columns,
+  Zap
 } from 'lucide-react';
 
 interface StudyPeerDockProps {
@@ -216,11 +216,21 @@ export const StudyPeerDock: React.FC<StudyPeerDockProps> = ({
     } catch {}
   };
 
-  const handleSend = () => {
-    const q = inputText.trim();
-    if (!q || session.status === 'streaming') return;
+  // Automatic native clipboard synchronization on every new snip
+  useEffect(() => {
+    if (session?.imageDataUrl && window.electronAPI?.copyImageToClipboard) {
+      window.electronAPI.copyImageToClipboard(session.imageDataUrl);
+    }
+  }, [session?.imageDataUrl]);
+
+  const handleSend = (overrideText?: string) => {
+    const raw = overrideText !== undefined ? overrideText : inputText;
+    const finalQuestion =
+      raw.trim() ||
+      'Explain this equation and diagram step-by-step with physical intuition and mathematical rigor.';
+    if (session.status === 'streaming') return;
     setInputText('');
-    onSubmitQuestion(q);
+    onSubmitQuestion(finalQuestion);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -265,49 +275,55 @@ export const StudyPeerDock: React.FC<StudyPeerDockProps> = ({
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // Copy Snipped Image to Clipboard for Web Account mode
-  const handleCopyImageToClipboard = async () => {
+  // Automated Snip Insertion directly into Webview without manual Ctrl+V
+  const handleAutoPasteToWebview = async () => {
     if (!session?.imageDataUrl) return;
 
-    // Electron native IPC clipboard
+    // 1. Copy image to native clipboard
     if (window.electronAPI?.copyImageToClipboard) {
-      const ok = await window.electronAPI.copyImageToClipboard(session.imageDataUrl);
-      if (ok) {
-        setCopiedImageToast(true);
-        setTimeout(() => setCopiedImageToast(false), 2400);
-        return;
+      await window.electronAPI.copyImageToClipboard(session.imageDataUrl);
+    }
+
+    setCopiedImageToast(true);
+
+    // 2. Focus the webview element and locate inner text input
+    if (webviewRef.current) {
+      try {
+        webviewRef.current.focus();
+        await webviewRef.current.executeJavaScript(`
+          (function() {
+            const targets = [
+              'div[contenteditable="true"]',
+              '#prompt-textarea',
+              'rich-textarea p',
+              'textarea',
+              '[role="textbox"]'
+            ];
+            for (const sel of targets) {
+              const el = document.querySelector(sel);
+              if (el) {
+                el.focus();
+                return true;
+              }
+            }
+            return false;
+          })()
+        `);
+      } catch (err) {
+        console.warn('Focus webview error:', err);
       }
-    }
 
-    // Standard browser fallback
-    try {
-      const res = await fetch(session.imageDataUrl);
-      const blob = await res.blob();
-      await navigator.clipboard.write([
-        new ClipboardItem({
-          [blob.type]: blob
-        })
-      ]);
-      setCopiedImageToast(true);
-      setTimeout(() => setCopiedImageToast(false), 2400);
-    } catch (err) {
-      console.warn('Failed standard clipboard write:', err);
-    }
-  };
-
-  // Copy OCR / Context Text to Clipboard
-  const handleCopyContextToClipboard = () => {
-    const textToCopy = [
-      session.nearbyText ? `[Problem Context]\n${session.nearbyText}` : '',
-      inputText ? `[My Question]\n${inputText}` : ''
-    ]
-      .filter(Boolean)
-      .join('\n\n');
-
-    if (textToCopy) {
-      navigator.clipboard.writeText(textToCopy);
-      setCopiedId('context-copied');
-      setTimeout(() => setCopiedId(null), 2000);
+      // 3. Issue native paste command directly to webview
+      setTimeout(() => {
+        try {
+          if (webviewRef.current?.paste) {
+            webviewRef.current.paste();
+          }
+        } catch (err) {
+          console.warn('Webview paste error:', err);
+        }
+        setTimeout(() => setCopiedImageToast(false), 2200);
+      }, 160);
     }
   };
 
@@ -562,27 +578,16 @@ export const StudyPeerDock: React.FC<StudyPeerDockProps> = ({
                   ))}
                 </div>
 
-                {/* Quick Clipboard Bridge */}
+                {/* Quick Auto-Insert & Navigation */}
                 <div className="web-toolbar-actions">
                   <button
                     className={`web-copy-snip-btn ${copiedImageToast ? 'copied' : ''}`}
-                    onClick={handleCopyImageToClipboard}
-                    title="Copy selected image to clipboard so you can paste (Ctrl+V) directly into Gemini / ChatGPT"
+                    onClick={handleAutoPasteToWebview}
+                    title="Automatically pastes the snipped image into Gemini / ChatGPT"
                   >
-                    {copiedImageToast ? <Check size={13} /> : <ClipboardCopy size={13} />}
-                    <span>{copiedImageToast ? 'Image Copied! Paste (Ctrl+V)' : 'Copy Snip (Ctrl+V)'}</span>
+                    <Zap size={13} />
+                    <span>{copiedImageToast ? '⚡ Snip Inserted!' : '⚡ Auto-Insert Snip'}</span>
                   </button>
-
-                  {session.nearbyText && (
-                    <button
-                      className="web-aux-btn"
-                      onClick={handleCopyContextToClipboard}
-                      title="Copy extracted context & question to clipboard"
-                    >
-                      {copiedId === 'context-copied' ? <Check size={13} /> : <Copy size={13} />}
-                      <span>Copy Context</span>
-                    </button>
-                  )}
 
                   <button className="web-nav-btn" onClick={handleWebBack} title="Back">
                     <ArrowLeft size={13} />
@@ -616,7 +621,7 @@ export const StudyPeerDock: React.FC<StudyPeerDockProps> = ({
                 <div className="web-footer-hint">
                   <Sparkles size={13} className="text-accent" />
                   <span>
-                    Logged into your <strong>{activeWebPreset.name}</strong> account! Click <strong>"Copy Snip"</strong> above, then simply press <strong>Ctrl+V</strong> in the chat to paste your equation or diagram.
+                    Logged in to <strong>{activeWebPreset.name}</strong>. Click <strong>"⚡ Auto-Insert Snip"</strong> above to send your equation or diagram directly into chat with zero typing!
                   </span>
                 </div>
               </div>
@@ -632,21 +637,45 @@ export const StudyPeerDock: React.FC<StudyPeerDockProps> = ({
               {!hasKey && (
                 <div className="peer-key-onboarding-card">
                   <div className="onboarding-icon">
-                    <Sparkles size={20} />
+                    <Sparkles size={22} />
                   </div>
                   <div className="onboarding-content">
-                    <h4>Talk to {activeProviderPreset.name} Directly</h4>
-                    <p>
-                      Get lightning-fast math streaming, KaTeX formulas, and 1-click export to your notes.
-                      {activeProviderPreset.id === 'gemini' && (
-                        <> Google provides free API keys with your regular Google account.</>
-                      )}
+                    <div className="onboarding-title-row">
+                      <h4>Connect {activeProviderPreset.name} (30s Free Setup)</h4>
+                      <span className="free-tag">100% Free Forever</span>
+                    </div>
+                    <p className="onboarding-desc">
+                      Sub-second streaming, KaTeX formulas, and 1-click export to your notebook.
                     </p>
+
+                    <div className="onboarding-steps-list">
+                      <div className="onboarding-step-item">
+                        <span className="step-num">1</span>
+                        <span>Open <strong>Google AI Studio</strong> with your Google account:</span>
+                        <a
+                          href={activeProviderPreset.keyUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="step-link-btn"
+                        >
+                          Get Free Key at aistudio.google.com ↗
+                        </a>
+                      </div>
+                      <div className="onboarding-step-item">
+                        <span className="step-num">2</span>
+                        <span>Click the blue <strong>"Create API Key"</strong> button (no credit card or billing needed).</span>
+                      </div>
+                      <div className="onboarding-step-item">
+                        <span className="step-num">3</span>
+                        <span>Paste your <strong>AIzaSy...</strong> key below & click <strong>Connect</strong>:</span>
+                      </div>
+                    </div>
+
                     <div className="onboarding-input-row">
                       <input
                         type="password"
                         className="onboarding-input"
-                        placeholder={activeProviderPreset.keyPlaceholder}
+                        placeholder="Paste AIzaSy... key here"
                         value={inlineKeyInput}
                         onChange={(e) => setInlineKeyInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSaveInlineKey()}
@@ -656,19 +685,11 @@ export const StudyPeerDock: React.FC<StudyPeerDockProps> = ({
                         onClick={handleSaveInlineKey}
                         disabled={!inlineKeyInput.trim()}
                       >
-                        Connect
+                        Connect & Start
                       </button>
                     </div>
+
                     <div className="onboarding-footer-links">
-                      <a
-                        href={activeProviderPreset.keyUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="onboarding-link"
-                      >
-                        Get Free Key at {activeProviderPreset.name} ↗
-                      </a>
-                      <span className="dot-divider">•</span>
                       <button
                         className="onboarding-switch-btn"
                         onClick={() => {
@@ -676,7 +697,7 @@ export const StudyPeerDock: React.FC<StudyPeerDockProps> = ({
                           setIsWide(true);
                         }}
                       >
-                        Or chat via your Google Account without an API key →
+                        Or switch to Web Account mode to chat directly with your Google account without a key →
                       </button>
                     </div>
                   </div>
@@ -732,11 +753,19 @@ export const StudyPeerDock: React.FC<StudyPeerDockProps> = ({
                     <div className="peer-empty-icon-wrap">
                       <Bot size={28} />
                     </div>
-                    <h3>Ask anything about this region</h3>
+                    <h3>Ready to Solve This Region</h3>
                     <p>
-                      Your peer is looking at the selected slice and nearby text.
-                      Ask why a term cancels, request physical intuition, or derive the next step!
+                      Your peer has inspected this visual slice and context. Click below or hit Enter to begin!
                     </p>
+
+                    {/* Hero 1-Click Action */}
+                    <button
+                      className="hero-auto-explain-btn"
+                      onClick={() => handleSend('Explain this equation and diagram step-by-step with physical intuition and full mathematical rigor.')}
+                    >
+                      <Zap size={14} />
+                      <span>⚡ Explain This Snip Immediately (1-Click)</span>
+                    </button>
 
                     {/* Quick Prompts */}
                     <div className="quick-prompts-grid">
@@ -876,8 +905,8 @@ export const StudyPeerDock: React.FC<StudyPeerDockProps> = ({
 
                 <button
                   className="peer-send-btn"
-                  disabled={!inputText.trim() || isStreaming}
-                  onClick={handleSend}
+                  disabled={isStreaming}
+                  onClick={() => handleSend()}
                   title="Send to peer (Enter)"
                 >
                   {isStreaming ? (

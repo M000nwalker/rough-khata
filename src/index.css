@@ -2323,16 +2323,81 @@ html, body {
   gap: 6px;
 }
 
-.onboarding-content h4 {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-main);
+.onboarding-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
-.onboarding-content p {
+.free-tag {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: var(--radius-full);
+  color: #34d399;
+}
+
+.onboarding-desc {
   font-size: 11px;
   color: var(--text-muted);
   line-height: 1.4;
+  margin-bottom: 2px;
+}
+
+.onboarding-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 4px 0;
+}
+
+.onboarding-step-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+}
+
+.step-num {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #a855f7, #3b82f6);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.step-link-btn {
+  font-size: 10px;
+  font-weight: 600;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+  text-decoration: none;
+  margin-left: auto;
+}
+
+.step-link-btn:hover {
+  background: rgba(56, 189, 248, 0.25);
+  color: #ffffff;
 }
 
 .onboarding-input-row {
@@ -2567,6 +2632,28 @@ html, body {
   color: var(--text-muted);
   line-height: 1.5;
   max-width: 360px;
+}
+
+.hero-auto-explain-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  margin: 10px 0 4px;
+  background: linear-gradient(135deg, #a855f7, #3b82f6);
+  border: none;
+  border-radius: var(--radius-full);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(168, 85, 247, 0.4);
+  transition: all var(--transition-fast);
+}
+
+.hero-auto-explain-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(168, 85, 247, 0.55);
 }
 
 .quick-prompts-grid {
