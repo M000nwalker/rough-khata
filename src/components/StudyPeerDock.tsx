@@ -481,7 +481,10 @@ export const StudyPeerDock: React.FC<StudyPeerDockProps> = ({
 
               {/* Model Choice for selected provider */}
               <div className="settings-field-group">
-                <label className="settings-label">Model</label>
+                <div className="settings-label-row">
+                  <label className="settings-label">Model Identifier</label>
+                  <span className="text-muted" style={{ fontSize: '10px' }}>Select preset or type any model</span>
+                </div>
                 <div className="settings-model-pills">
                   {PROVIDER_PRESETS.find((p) => p.id === tempProvider)?.models.map((m) => (
                     <button
@@ -493,6 +496,14 @@ export const StudyPeerDock: React.FC<StudyPeerDockProps> = ({
                     </button>
                   ))}
                 </div>
+                <input
+                  type="text"
+                  className="settings-input"
+                  style={{ marginTop: '6px' }}
+                  value={tempModel}
+                  onChange={(e) => setTempModel(e.target.value)}
+                  placeholder="Enter model name (e.g. gemini-2.5-flash, gemini-2.5-pro, or custom)"
+                />
               </div>
 
               {/* API Key Field */}
