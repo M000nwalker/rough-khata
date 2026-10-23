@@ -1,8 +1,11 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import type { Annotation, PageModel, Point, ShapeAnnotation, StrokeAnnotation, ToolType } from '../types';
+import type { Annotation, PageModel, Point, ShapeAnnotation, SnipRegion, StrokeAnnotation, ToolType } from '../types';
 import { drawPaperPattern, drawShape, drawStroke, hitTestAnnotation } from '../utils/canvasRenderer';
 import { renderLatexToHtml } from '../utils/mathHelper';
 import { LaserCanvas } from './LaserCanvas';
+import { CanvasSnipOverlay } from './CanvasSnipOverlay';
+import { cropCanvasRegion } from '../utils/cropCanvasRegion';
+import { extractNearbyText } from '../utils/extractNearbyText';
 import * as pdfjsLib from 'pdfjs-dist';
 import { renderPdfPage } from '../utils/pdfManager';
 import { Trash2, Move, Edit3 } from 'lucide-react';
@@ -14,8 +17,16 @@ interface PageViewProps {
   activeTool: ToolType;
   primaryColor: string;
   strokeWidth: number;
+  frozenPeerBox?: SnipRegion | null;
   onUpdateAnnotations: (pageId: string, annotations: Annotation[]) => void;
   onSnipToScratchpad?: (croppedImageDataUrl: string, sourcePageNumber: number) => void;
+  onAskPeerSnip?: (
+    box: SnipRegion,
+    screenAnchor: { x: number; y: number; width: number; height: number },
+    imageDataUrl: string,
+    nearbyText: string
+  ) => void;
+  onCancelPeerSnip?: () => void;
   onEditLatex?: (annotationId: string, currentContent: string, currentColor: string) => void;
   onExtendPageHeight?: (pageId: string, additionalHeight: number) => void;
 }
@@ -27,8 +38,11 @@ export const PageView: React.FC<PageViewProps> = ({
   activeTool,
   primaryColor,
   strokeWidth,
+  frozenPeerBox,
   onUpdateAnnotations,
   onSnipToScratchpad,
+  onAskPeerSnip,
+  onCancelPeerSnip,
   onEditLatex,
   onExtendPageHeight
 }) => {
@@ -46,6 +60,49 @@ export const PageView: React.FC<PageViewProps> = ({
   // Selected annotation for moving / deleting
   const [selectedAnnId, setSelectedAnnId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number } | null>(null);
+
+  const [isAltPressed, setIsAltPressed] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Alt') {
+        setIsAltPressed(true);
+      }
+    };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Alt') {
+        setIsAltPressed(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
+
+  const handleSnipComplete = async (
+    box: SnipRegion,
+    screenAnchor: { x: number; y: number; width: number; height: number }
+  ) => {
+    const croppedDataUrl = cropCanvasRegion({
+      box,
+      pageWidth: page.width,
+      pageHeight: page.height,
+      pdfCanvas: pdfCanvasRef.current,
+      bgCanvas: bgCanvasRef.current,
+      annotCanvas: annotCanvasRef.current,
+      format: 'image/png'
+    });
+
+    const pageIdx = page.pdfPageIndex !== undefined ? page.pdfPageIndex : page.pageNumber - 1;
+    const textResult = await extractNearbyText(pdfDoc, pageIdx, box, 150, page.annotations);
+
+    if (onAskPeerSnip) {
+      onAskPeerSnip(box, screenAnchor, croppedDataUrl, textResult.fullNearbySnippet);
+    }
+  };
 
   const pageWidth = page.width;
   const pageHeight = page.height;
@@ -106,7 +163,7 @@ export const PageView: React.FC<PageViewProps> = ({
 
   // 3. Pointer Down Handler
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (activeTool === 'laser' || activeTool === 'select') return;
+    if (activeTool === 'laser' || activeTool === 'select' || activeTool === 'ask-peer' || isAltPressed || e.altKey) return;
 
     const { x, y } = getCanvasCoords(e);
     setIsDrawing(true);
@@ -507,6 +564,17 @@ export const PageView: React.FC<PageViewProps> = ({
           height={pageHeight}
           active={activeTool === 'laser'}
           laserColor="#ef4444"
+        />
+
+        {/* Layer 6: In-Situ Snip-and-Ask AI Study Overlay */}
+        <CanvasSnipOverlay
+          active={activeTool === 'ask-peer' || isAltPressed}
+          pageWidth={pageWidth}
+          pageHeight={pageHeight}
+          scale={scale}
+          frozenBox={frozenPeerBox || null}
+          onSnipComplete={handleSnipComplete}
+          onCancelSnip={() => onCancelPeerSnip?.()}
         />
       </div>
 

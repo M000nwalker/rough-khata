@@ -15,6 +15,7 @@ export type ToolType =
   | 'text'
   | 'laser'
   | 'snip'
+  | 'ask-peer'
   | 'pan';
 
 export type AppMode = 'slides' | 'infinite';
@@ -122,7 +123,48 @@ declare global {
         buffer: Uint8Array;
         filters?: Array<{ name: string; extensions: string[] }>;
       }) => Promise<{ success: boolean; filePath: string } | false>;
+      getEnvKeys?: () => Promise<{ geminiKey?: string; openaiKey?: string }>;
       isElectron?: boolean;
     };
   }
 }
+
+export interface SnipRegion {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface ExtractedTextResult {
+  insideText: string;
+  contextText: string;
+  fullNearbySnippet: string;
+  tokenCount: number;
+}
+
+export interface PeerMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: number;
+}
+
+export interface PeerSession {
+  id: string;
+  pageIndex: number;
+  box: SnipRegion;
+  imageDataUrl: string;
+  nearbyText: string;
+  messages: PeerMessage[];
+  status: 'idle' | 'streaming' | 'error';
+  error?: string;
+}
+
+export interface AiConfig {
+  provider: 'gemini' | 'openai-compatible';
+  apiKey: string;
+  model: string;
+  customBaseUrl?: string;
+}
+

@@ -73,7 +73,7 @@ export const MathModal: React.FC<MathModalProps> = ({
         <div className="modal-header">
           <div className="modal-title-wrap">
             <Calculator className="modal-icon" size={20} />
-            <h3>STEM Formula & Clean Typography</h3>
+            <h3>Formula & Text</h3>
           </div>
           <button className="icon-btn-ghost" onClick={onClose} title="Close">
             <X size={18} />
@@ -87,14 +87,14 @@ export const MathModal: React.FC<MathModalProps> = ({
             onClick={() => setIsLatexMode(true)}
           >
             <Sparkles size={16} />
-            <span>LaTeX Math & Science</span>
+            <span>LaTeX Formula</span>
           </button>
           <button
             className={`tab-btn ${!isLatexMode ? 'active' : ''}`}
             onClick={() => setIsLatexMode(false)}
           >
             <Type size={16} />
-            <span>Clean Text Note</span>
+            <span>Text Note</span>
           </button>
         </div>
 
@@ -222,7 +222,7 @@ export const MathModal: React.FC<MathModalProps> = ({
           </button>
           <button className="btn-primary" onClick={handleConfirm}>
             <Check size={18} />
-            <span>Place on Page</span>
+            <span>Insert</span>
           </button>
         </div>
       </div>

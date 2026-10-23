@@ -73,7 +73,7 @@ export const NewDocModal: React.FC<NewDocModalProps> = ({ isOpen, onClose, onCre
         <div className="modal-header">
           <div className="modal-title-wrap">
             <FilePlus className="modal-icon" size={22} />
-            <h3>Create New Blank Notebook</h3>
+            <h3>New Document</h3>
           </div>
           <button className="icon-btn-ghost" onClick={onClose}>
             <X size={18} />
@@ -83,13 +83,13 @@ export const NewDocModal: React.FC<NewDocModalProps> = ({ isOpen, onClose, onCre
         <div className="modal-body-scroll">
           {/* Document Title */}
           <div className="input-group">
-            <label className="input-label">Notebook Title</label>
+            <label className="input-label">Title</label>
             <input
               type="text"
               className="text-input"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Physics Mechanics Chapter 4"
+              placeholder="Document Title"
             />
           </div>
 
@@ -97,7 +97,7 @@ export const NewDocModal: React.FC<NewDocModalProps> = ({ isOpen, onClose, onCre
           <div className="input-group">
             <label className="input-label">
               <Palette size={16} />
-              <span>Teaching Paper Presets</span>
+              <span>Paper Presets</span>
             </label>
             <div className="presets-grid">
               {PRESET_STYLES.map((preset) => (
@@ -129,22 +129,22 @@ export const NewDocModal: React.FC<NewDocModalProps> = ({ isOpen, onClose, onCre
                 className={`ratio-btn ${aspectRatio === '16:9' ? 'active' : ''}`}
                 onClick={() => setAspectRatio('16:9')}
               >
-                <strong>16:9 Screen Share</strong>
-                <span>1280 × 720 (Best for Zoom/Meet)</span>
+                <strong>16:9 Widescreen</strong>
+                <span>1280 × 720</span>
               </button>
               <button
                 className={`ratio-btn ${aspectRatio === 'a4-portrait' ? 'active' : ''}`}
                 onClick={() => setAspectRatio('a4-portrait')}
               >
                 <strong>A4 Portrait</strong>
-                <span>794 × 1123 (Standard Print)</span>
+                <span>794 × 1123</span>
               </button>
               <button
                 className={`ratio-btn ${aspectRatio === 'a4-landscape' ? 'active' : ''}`}
                 onClick={() => setAspectRatio('a4-landscape')}
               >
                 <strong>A4 Landscape</strong>
-                <span>1123 × 794 (Wide Note)</span>
+                <span>1123 × 794</span>
               </button>
               <button
                 className={`ratio-btn ${aspectRatio === 'letter' ? 'active' : ''}`}
@@ -179,7 +179,7 @@ export const NewDocModal: React.FC<NewDocModalProps> = ({ isOpen, onClose, onCre
             <div className="input-group">
               <label className="input-label">
                 <Sliders size={16} />
-                <span>Custom Paper Color</span>
+                <span>Paper Color</span>
               </label>
               <div className="color-input-wrap">
                 <input
@@ -195,7 +195,7 @@ export const NewDocModal: React.FC<NewDocModalProps> = ({ isOpen, onClose, onCre
 
           {/* Initial Page Count */}
           <div className="input-group">
-            <label className="input-label">Starting Pages ({pageCount} pages)</label>
+            <label className="input-label">Pages ({pageCount})</label>
             <input
               type="range"
               min="1"
@@ -213,7 +213,7 @@ export const NewDocModal: React.FC<NewDocModalProps> = ({ isOpen, onClose, onCre
           </button>
           <button className="btn-primary" onClick={handleCreate}>
             <Check size={18} />
-            <span>Generate Notebook</span>
+            <span>Create Document</span>
           </button>
         </div>
       </div>

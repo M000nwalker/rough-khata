@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { Annotation, AppMode, PageModel, PaperGrid, ToolType } from './types';
+import type { Annotation, AppMode, PageModel, PaperGrid, PeerMessage, PeerSession, SnipRegion, ToolType } from './types';
 import { createBlankNotebook, insertBlankPage, loadPdfDocument } from './utils/pdfManager';
 import { exportToPdf } from './utils/pdfExport';
 import { Toolbar } from './components/Toolbar';
@@ -8,6 +8,8 @@ import { PageView } from './components/PageView';
 import { InfiniteCanvas } from './components/InfiniteCanvas';
 import { MathModal } from './components/MathModal';
 import { NewDocModal } from './components/NewDocModal';
+import { StudyPeerDock } from './components/StudyPeerDock';
+import { getStoredAiConfig, saveAiConfig, streamPeerExplanation } from './utils/aiPeerClient';
 import * as pdfjsLib from 'pdfjs-dist';
 import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 
@@ -42,7 +44,25 @@ export const App: React.FC = () => {
   const [mathModalOpen, setMathModalOpen] = useState<boolean>(false);
   const [editingLatexInfo, setEditingLatexInfo] = useState<{ id?: string; content?: string; color?: string } | null>(null);
   const [newDocModalOpen, setNewDocModalOpen] = useState<boolean>(false);
-  const [notification, setNotification] = useState<string | null>('Rough Khata Ready! Maximum working area active.');
+  const [notification, setNotification] = useState<string | null>(null);
+
+  // Study Peer AI State
+  const [peerSession, setPeerSession] = useState<PeerSession | null>(null);
+  const [peerAnchor, setPeerAnchor] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const [peerDockMode, setPeerDockMode] = useState<'floating' | 'sidebar'>('floating');
+  const peerAbortControllerRef = useRef<AbortController | null>(null);
+
+  // Detect environment API keys from Electron
+  useEffect(() => {
+    if (window.electronAPI?.getEnvKeys) {
+      window.electronAPI.getEnvKeys().then((keys) => {
+        const stored = getStoredAiConfig();
+        if (!stored.apiKey && keys?.geminiKey) {
+          saveAiConfig({ ...stored, apiKey: keys.geminiKey, provider: 'gemini' });
+        }
+      });
+    }
+  }, []);
 
   // References
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -53,18 +73,17 @@ export const App: React.FC = () => {
     setNotification(msg);
     setTimeout(() => {
       setNotification((current) => (current === msg ? null : current));
-    }, 3500);
+    }, 2500);
   };
 
   const currentPage = pages[currentPageIndex] || pages[0];
 
-  // Auto-Fit to Width Handler (Gives maximum working space!)
+  // Auto-Fit to Width Handler
   const handleFitWidth = () => {
     if (!currentPage || !viewportScrollRef.current) return;
     const stageWidth = viewportScrollRef.current.clientWidth;
     const targetScale = Number(((stageWidth - 48) / currentPage.width).toFixed(2));
     setScale(Math.max(0.4, Math.min(2.5, targetScale)));
-    showNotice(`Fitted to full width (${Math.round(targetScale * 100)}%)`);
   };
 
   // Auto-Fit to Screen Handler
@@ -76,7 +95,6 @@ export const App: React.FC = () => {
     const scaleH = (stageHeight - 80) / currentPage.height;
     const targetScale = Number(Math.min(scaleW, scaleH).toFixed(2));
     setScale(Math.max(0.4, Math.min(2.5, targetScale)));
-    showNotice(`Fitted to screen (${Math.round(targetScale * 100)}%)`);
   };
 
   // Initial Auto-Fit calculation
@@ -119,7 +137,7 @@ export const App: React.FC = () => {
 
   const loadPdfFromArrayBuffer = async (buffer: ArrayBuffer, fileName: string) => {
     try {
-      showNotice('Loading PDF document into Rough Khata...');
+      showNotice('Opening PDF...');
       const { pdfDoc, pages: loadedPages } = await loadPdfDocument(buffer);
       setPdfData(buffer);
       setPdfDocProxy(pdfDoc);
@@ -137,10 +155,10 @@ export const App: React.FC = () => {
         }
       }, 100);
 
-      showNotice(`Successfully loaded "${fileName}" (${loadedPages.length} pages).`);
+      showNotice('PDF loaded.');
     } catch (err) {
       console.error('Error parsing PDF:', err);
-      showNotice('Failed to open PDF document. Make sure it is a valid PDF.');
+      showNotice('Error opening PDF.');
     }
   };
 
@@ -186,7 +204,7 @@ export const App: React.FC = () => {
     setCurrentPageIndex(0);
     setDocTitle(title);
     setAppMode('slides');
-    showNotice(`Created new Rough Khata "${title}" (${pageCount} pages).`);
+    showNotice('Document created.');
   };
 
   // 3. Insert Blank Page Handler
@@ -198,7 +216,7 @@ export const App: React.FC = () => {
     const updated = insertBlankPage(pages, afterIndex, width, height, paperColor, paperGrid);
     setPages(updated);
     setCurrentPageIndex(afterIndex + 1);
-    showNotice(`Inserted new blank scratchpad page at Slide ${afterIndex + 2}.`);
+    showNotice('Page added.');
   };
 
   // 4. Extend Page Height Handler (+500px on demand)
@@ -214,7 +232,7 @@ export const App: React.FC = () => {
         return p;
       })
     );
-    showNotice(`Extended page height by +${additionalHeight}px! Keep writing!`);
+    showNotice('Page height extended.');
   };
 
   // 5. Delete Page Handler
@@ -231,7 +249,7 @@ export const App: React.FC = () => {
     if (currentPageIndex >= updated.length) {
       setCurrentPageIndex(updated.length - 1);
     }
-    showNotice(`Deleted Slide ${indexToDelete + 1}.`);
+    showNotice('Page deleted.');
   };
 
   // 6. Move Page Handler
@@ -321,13 +339,13 @@ export const App: React.FC = () => {
     if (appMode === 'infinite') {
       if (infiniteAnnotations.length === 0) return;
       handleUpdateInfiniteAnnotations([]);
-      showNotice('Cleared Infinite Khata.');
+      showNotice('Cleared.');
       return;
     }
 
     if (!currentPage || currentPage.annotations.length === 0) return;
     handleUpdateAnnotations(currentPage.id, []);
-    showNotice('Cleared all annotations on current slide.');
+    showNotice('Annotations cleared.');
   };
 
   // 8. Math & LaTeX Modal Handlers
@@ -359,7 +377,7 @@ export const App: React.FC = () => {
         height: isLatex ? 90 : 50
       };
       handleUpdateInfiniteAnnotations([...infiniteAnnotations, newItem]);
-      showNotice('Equation placed on Infinite Khata. Drag anywhere!');
+      showNotice('Formula placed.');
       return;
     }
 
@@ -374,7 +392,7 @@ export const App: React.FC = () => {
       });
       handleUpdateAnnotations(currentPage.id, updated);
       setEditingLatexInfo(null);
-      showNotice('Updated equation.');
+      showNotice('Formula updated.');
       return;
     }
 
@@ -396,7 +414,7 @@ export const App: React.FC = () => {
     };
 
     handleUpdateAnnotations(currentPage.id, [...currentPage.annotations, newItem]);
-    showNotice(isLatex ? 'LaTeX equation placed. Drag to reposition.' : 'Note placed. Drag to reposition.');
+    showNotice(isLatex ? 'Formula placed.' : 'Note placed.');
   };
 
   const handleEditLatex = (id: string, content: string, color: string) => {
@@ -405,7 +423,7 @@ export const App: React.FC = () => {
   };
 
   // 9. Snip & Solve Handler (Crop problem -> new blank scratchpad page)
-  const handleSnipToScratchpad = (croppedDataUrl: string, sourcePageNum: number) => {
+  const handleSnipToScratchpad = (croppedDataUrl: string, _sourcePageNum: number) => {
     const curWidth = currentPage?.width || 1280;
     const curHeight = currentPage?.height || 720;
     const insertIndex = currentPageIndex;
@@ -440,13 +458,198 @@ export const App: React.FC = () => {
     setPages(reindexed);
     setCurrentPageIndex(insertIndex + 1);
     setActiveTool('pen');
-    showNotice(`Snipped question from Slide ${sourcePageNum} to fresh scratchpad page!`);
+    showNotice('Selection placed on new page.');
   };
 
-  // 10. Export PDF Handler
+  // 10. Study Peer Handlers
+  const handleAskPeerSnip = (
+    box: SnipRegion,
+    screenAnchor: { x: number; y: number; width: number; height: number },
+    imageDataUrl: string,
+    nearbyText: string
+  ) => {
+    if (peerAbortControllerRef.current) {
+      peerAbortControllerRef.current.abort();
+      peerAbortControllerRef.current = null;
+    }
+
+    setPeerAnchor(screenAnchor);
+    setPeerSession({
+      id: `peer-${Date.now()}`,
+      pageIndex: currentPageIndex,
+      box,
+      imageDataUrl,
+      nearbyText,
+      messages: [],
+      status: 'idle'
+    });
+
+    if (activeTool === 'ask-peer') {
+      setActiveTool('pen');
+    }
+  };
+
+  const handleCancelPeerSnip = () => {
+    if (peerAbortControllerRef.current) {
+      peerAbortControllerRef.current.abort();
+      peerAbortControllerRef.current = null;
+    }
+    setPeerSession(null);
+    setPeerAnchor(null);
+  };
+
+  const handleSubmitPeerQuestion = async (userQuestion: string) => {
+    if (!peerSession) return;
+
+    const userMsg: PeerMessage = {
+      id: `msg-u-${Date.now()}`,
+      role: 'user',
+      content: userQuestion,
+      timestamp: Date.now()
+    };
+
+    const asstMsgId = `msg-a-${Date.now()}`;
+    const asstMsg: PeerMessage = {
+      id: asstMsgId,
+      role: 'assistant',
+      content: '',
+      timestamp: Date.now()
+    };
+
+    const updatedHistory = [...peerSession.messages, userMsg];
+
+    setPeerSession((prev) =>
+      prev
+        ? {
+            ...prev,
+            messages: [...updatedHistory, asstMsg],
+            status: 'streaming',
+            error: undefined
+          }
+        : null
+    );
+
+    const controller = new AbortController();
+    peerAbortControllerRef.current = controller;
+
+    try {
+      const config = getStoredAiConfig();
+      await streamPeerExplanation({
+        imageDataUrl: peerSession.imageDataUrl,
+        nearbyText: peerSession.nearbyText,
+        userQuestion,
+        history: updatedHistory,
+        config,
+        signal: controller.signal,
+        onChunk: (chunk) => {
+          setPeerSession((current) => {
+            if (!current) return null;
+            const msgs = current.messages.map((m) =>
+              m.id === asstMsgId ? { ...m, content: m.content + chunk } : m
+            );
+            return { ...current, messages: msgs };
+          });
+        }
+      });
+
+      setPeerSession((prev) => (prev ? { ...prev, status: 'idle' } : null));
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        setPeerSession((prev) => (prev ? { ...prev, status: 'idle' } : null));
+      } else {
+        console.error('Peer streaming error:', err);
+        setPeerSession((prev) =>
+          prev ? { ...prev, status: 'error', error: err.message || 'Stream failed' } : null
+        );
+      }
+    } finally {
+      peerAbortControllerRef.current = null;
+    }
+  };
+
+  const handleStopPeerStreaming = () => {
+    if (peerAbortControllerRef.current) {
+      peerAbortControllerRef.current.abort();
+      peerAbortControllerRef.current = null;
+    }
+    setPeerSession((prev) => (prev ? { ...prev, status: 'idle' } : null));
+  };
+
+  const handleInsertPeerLatexToNotes = (content: string) => {
+    const match = content.match(/\$\$([\s\S]+?)\$\$/);
+    const latexFormula = match ? match[1].trim() : null;
+
+    if (latexFormula) {
+      handleInsertMathOrText({
+        content: latexFormula,
+        isLatex: true,
+        fontSize: 22,
+        color: primaryColor
+      });
+    } else {
+      handleInsertMathOrText({
+        content: content.replace(/[#*`]/g, '').slice(0, 300),
+        isLatex: false,
+        fontSize: 16,
+        color: '#f1f5f9',
+        bgColor: 'rgba(26, 30, 41, 0.95)'
+      });
+    }
+  };
+
+  const handleSendPeerToScratchpad = (imageDataUrl: string, content: string) => {
+    const curWidth = currentPage?.width || 1280;
+    const curHeight = currentPage?.height || 720;
+    const insertIndex = currentPageIndex;
+
+    const newPageModel: PageModel = {
+      id: `scratch-peer-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      pageNumber: insertIndex + 2,
+      isCustomPage: true,
+      width: curWidth,
+      height: curHeight,
+      paperColor: '#1a1d24',
+      paperGrid: 'grid',
+      annotations: [
+        {
+          id: `snip-img-${Date.now()}`,
+          kind: 'image',
+          dataUrl: imageDataUrl,
+          x: 40,
+          y: 40,
+          width: Math.min(curWidth * 0.45, 520),
+          height: Math.min(curHeight * 0.4, 260)
+        },
+        {
+          id: `math-note-${Date.now()}`,
+          kind: 'text-math',
+          isLatex: false,
+          content: content.slice(0, 500),
+          x: Math.min(curWidth * 0.45, 520) + 60,
+          y: 40,
+          fontSize: 16,
+          color: '#38bdf8',
+          bgColor: 'rgba(20, 23, 31, 0.9)',
+          width: Math.min(curWidth * 0.45, 540),
+          height: Math.min(curHeight * 0.8, 500)
+        }
+      ],
+      undoStack: [],
+      redoStack: []
+    };
+
+    const newPagesList = [...pages];
+    newPagesList.splice(insertIndex + 1, 0, newPageModel);
+    const reindexed = newPagesList.map((p, idx) => ({ ...p, pageNumber: idx + 1 }));
+    setPages(reindexed);
+    setCurrentPageIndex(insertIndex + 1);
+    showNotice('Peer explanation saved to new scratchpad page.');
+  };
+
+  // 11. Export PDF Handler
   const handleExportPdf = async () => {
     try {
-      showNotice('Baking annotations and compiling PDF...');
+      showNotice('Exporting PDF...');
       const compiledBytes = await exportToPdf(pdfData, pages, docTitle);
 
       if (window.electronAPI?.saveFileDialog) {
@@ -456,7 +659,7 @@ export const App: React.FC = () => {
           filters: [{ name: 'PDF Document', extensions: ['pdf'] }]
         });
         if (result && result.success) {
-          showNotice(`PDF successfully saved to: ${result.filePath}`);
+          showNotice('PDF saved successfully.');
         }
       } else {
         const blob = new Blob([compiledBytes as any], { type: 'application/pdf' });
@@ -468,11 +671,11 @@ export const App: React.FC = () => {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        showNotice('Downloaded annotated PDF successfully.');
+        showNotice('PDF exported.');
       }
     } catch (err) {
       console.error('PDF export error:', err);
-      showNotice('Failed to export PDF. Check console for details.');
+      showNotice('Export failed.');
     }
   };
 
@@ -512,6 +715,8 @@ export const App: React.FC = () => {
         setActiveTool('laser');
       } else if (e.key.toLowerCase() === 'm') {
         setMathModalOpen(true);
+      } else if (e.key.toLowerCase() === 'a') {
+        setActiveTool((curr) => (curr === 'ask-peer' ? 'pen' : 'ask-peer'));
       }
     };
 
@@ -600,8 +805,11 @@ export const App: React.FC = () => {
                   activeTool={activeTool}
                   primaryColor={primaryColor}
                   strokeWidth={strokeWidth}
+                  frozenPeerBox={peerSession?.pageIndex === currentPageIndex ? peerSession.box : null}
                   onUpdateAnnotations={handleUpdateAnnotations}
                   onSnipToScratchpad={handleSnipToScratchpad}
+                  onAskPeerSnip={handleAskPeerSnip}
+                  onCancelPeerSnip={handleCancelPeerSnip}
                   onEditLatex={handleEditLatex}
                   onExtendPageHeight={handleExtendPageHeight}
                 />
@@ -654,6 +862,21 @@ export const App: React.FC = () => {
           </main>
         )}
       </div>
+
+      {/* In-Situ Snip-and-Ask AI Study Assistant Dock / Popover */}
+      {peerSession && (
+        <StudyPeerDock
+          session={peerSession}
+          anchor={peerAnchor}
+          dockMode={peerDockMode}
+          onToggleDockMode={() => setPeerDockMode((m) => (m === 'floating' ? 'sidebar' : 'floating'))}
+          onClose={handleCancelPeerSnip}
+          onSubmitQuestion={handleSubmitPeerQuestion}
+          onStopStreaming={handleStopPeerStreaming}
+          onInsertLatexToNotes={handleInsertPeerLatexToNotes}
+          onSendToScratchpad={handleSendPeerToScratchpad}
+        />
+      )}
 
       {/* Modals */}
       <MathModal

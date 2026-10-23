@@ -27,7 +27,8 @@ import {
   FileText,
   Infinity,
   Maximize,
-  Scan
+  Scan,
+  Bot
 } from 'lucide-react';
 
 interface ToolbarProps {
@@ -124,7 +125,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <button
             className={`mode-pill-btn ${appMode === 'slides' ? 'active' : ''}`}
             onClick={() => onToggleMode('slides')}
-            title="PDF & Slide Workspace"
+            title="Slides & PDF"
           >
             <FileText size={14} />
             <span>Slides / PDF</span>
@@ -132,7 +133,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <button
             className={`mode-pill-btn ${appMode === 'infinite' ? 'active' : ''}`}
             onClick={() => onToggleMode('infinite')}
-            title="Endless Infinite Canvas Whiteboard"
+            title="Infinite Canvas"
           >
             <Infinity size={15} />
             <span>Infinite Khata</span>
@@ -141,19 +142,19 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
         {appMode === 'slides' && (
           <>
-            <button className="tool-btn icon-label" onClick={onOpenPdf} title="Open any PDF document">
+            <button className="tool-btn icon-label" onClick={onOpenPdf} title="Open PDF">
               <FolderOpen size={15} />
               <span>Open PDF</span>
             </button>
 
-            <button className="tool-btn icon-label" onClick={onNewNotebook} title="Generate blank colored notebook">
+            <button className="tool-btn icon-label" onClick={onNewNotebook} title="New Notebook">
               <FilePlus size={15} />
               <span>New</span>
             </button>
           </>
         )}
 
-        <button className="tool-btn icon-label highlight-export" onClick={onExportPdf} title="Bake and export to PDF / PNG">
+        <button className="tool-btn icon-label highlight-export" onClick={onExportPdf} title="Export">
           <Download size={15} />
           <span>Export</span>
         </button>
@@ -334,23 +335,33 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         <button
           className={`tool-icon-btn laser-btn ${activeTool === 'laser' ? 'active' : ''}`}
           onClick={() => onSelectTool('laser')}
-          title="Teacher Laser Pointer (Temporary Glow for Screen Sharing)"
+          title="Laser Pointer"
         >
           <Flame size={17} />
           <span className="laser-label">Laser</span>
         </button>
 
-        {/* Snip & Solve Tool (only in slide mode) */}
+        {/* Snip Tool */}
         {appMode === 'slides' && (
           <button
             className={`tool-icon-btn snip-btn ${activeTool === 'snip' ? 'active' : ''}`}
             onClick={() => onSelectTool('snip')}
-            title="Snip & Solve: Crop question from PDF -> new scratchpad page"
+            title="Snip: Copy selection to new page"
           >
             <Crop size={17} />
             <span className="snip-label">Snip</span>
           </button>
         )}
+
+        {/* Snip & Ask AI Study Assistant */}
+        <button
+          className={`tool-icon-btn peer-tool-btn ${activeTool === 'ask-peer' ? 'active' : ''}`}
+          onClick={() => onSelectTool(activeTool === 'ask-peer' ? 'pen' : 'ask-peer')}
+          title="Snip-and-Ask AI Study Assistant (Drag bounding box or hold Alt)"
+        >
+          <Bot size={17} />
+          <span className="peer-btn-label">Ask Peer</span>
+        </button>
       </div>
 
       <div className="toolbar-divider" />
@@ -428,7 +439,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             <button
               className="fit-action-btn"
               onClick={onFitWidth}
-              title="Fit to Full Window Width (Max Working Space)"
+              title="Fit to Width"
             >
               <Maximize size={13} />
               <span>Fit Width</span>
@@ -437,7 +448,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             <button
               className="fit-action-btn"
               onClick={onFitScreen}
-              title="Fit Full Page on Screen"
+              title="Fit to Window"
             >
               <Scan size={13} />
               <span>Fit Screen</span>

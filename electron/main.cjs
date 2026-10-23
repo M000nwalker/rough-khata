@@ -79,6 +79,13 @@ ipcMain.handle('dialog:save-file', async (_event, { defaultName, buffer, filters
   return { success: true, filePath: result.filePath };
 });
 
+ipcMain.handle('ai:get-env-keys', async () => {
+  return {
+    geminiKey: process.env.GEMINI_API_KEY || '',
+    openaiKey: process.env.OPENAI_API_KEY || ''
+  };
+});
+
 app.whenReady().then(() => {
   createWindow();
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import type { PageModel, PaperGrid } from '../types';
-import { Plus, Trash2, ArrowUp, ArrowDown, FileText, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { Plus, Trash2, ArrowUp, ArrowDown, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface SidebarProps {
   pages: PageModel[];
@@ -45,10 +45,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               className="quick-insert-btn"
               onClick={() => onInsertBlankPage(currentPageIndex, '#1a1d24', 'grid')}
-              title="Insert a dark math grid page right after current page"
+              title="Insert blank page"
             >
               <Plus size={16} />
-              <span>+ Add Blank Scratchpad</span>
+              <span>+ Blank Page</span>
             </button>
           </div>
 
@@ -63,10 +63,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onClick={() => onSelectPage(idx)}
                 >
                   <div className="thumb-header">
-                    <span className="thumb-num">Slide {idx + 1}</span>
+                    <span className="thumb-num">Page {idx + 1}</span>
                     {page.isCustomPage && (
-                      <span className="thumb-badge" title="Blank Scratchpad">
-                        <Sparkles size={11} /> Scratch
+                      <span className="thumb-badge" title="Blank Page">
+                        Blank
                       </span>
                     )}
 
@@ -114,7 +114,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <span className="thumb-grid-tag">{page.paperGrid}</span>
                       )}
                       {page.annotations.length > 0 && (
-                        <span className="thumb-ann-tag">{page.annotations.length} notes</span>
+                        <span className="thumb-ann-tag">{page.annotations.length} items</span>
                       )}
                     </div>
                   </div>
@@ -123,11 +123,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <div className="insert-between-row" onClick={(e) => e.stopPropagation()}>
                     <button
                       className="insert-between-btn"
-                      title="Insert Blank Scratchpad Page Here"
+                      title="Insert page here"
                       onClick={() => onInsertBlankPage(idx, page.paperColor, page.paperGrid)}
                     >
                       <Plus size={12} />
-                      <span>Insert Blank Page Here</span>
+                      <span>Insert Page</span>
                     </button>
                   </div>
                 </div>
